@@ -2,10 +2,12 @@ name: Lint, Build & Test
 
 on:
   push:
-    branches: [$default-branch, main]
+    branches:
+      - ${{ github.ref == 'refs/heads/main' && github.ref != 'refs/heads/${{ default-branch }}' || default-branch }} 
   pull_request:
-    branches: [$default-branch, main]
-  
+    branches:
+      - ${{ github.ref == 'refs/heads/main' && github.ref != 'refs/heads/${{ default-branch }}' || default-branch }}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name != 'push' }}
@@ -24,17 +26,17 @@ jobs:
       HOME: /root
 
     steps:
-      - name: Initialize docker services
-        run: |
-          umount /var/run/docker.sock
-          /usr/local/share/docker-init.sh
-
-      - name: Check out
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
+      - name: Check out repository
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0
           submodules: recursive
-      
+
+      - name: Initialize docker services
+        run: |
+          umount /var/run/docker.sock || true
+          /usr/local/share/docker-init.sh
+
       - name: Yarn install
         run: |
           yarn install --immutable
@@ -43,7 +45,6 @@ jobs:
         run: |
           yarn build
 
-      - name: Test
+      - name: Run Tests
         run: |
           yarn test
-  
